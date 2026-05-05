@@ -4,8 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Кроссворд‑новости</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js">
-    </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <style>
         :root {
             --bg: #f5f3ee;
@@ -278,7 +277,7 @@
     let playerState = {
         answers: {}, selected: null, direction: 'across', solved: {},
         timerInterval: null, startTime: null, elapsedSeconds: 0, gameOver: false,
-        hintCells: {}
+        hintCells: {}, realSolvedBeforeSurrender: 0
     };
     let _playerDataRef = null;
 
@@ -755,7 +754,7 @@
         appMode='player';
         el('mode-badge').textContent='Игрок'; el('mode-badge').className='mode-pill mode-player';
         el('app-heading').textContent=data.title||'Кроссворд-новости'; el('app-sub').textContent='Угадайте слова';
-        playerState = { answers:{}, selected:null, direction:'across', solved:{}, timerInterval:null, startTime:null, elapsedSeconds:0, gameOver:false, hintCells:{} };
+        playerState = { answers:{}, selected:null, direction:'across', solved:{}, timerInterval:null, startTime:null, elapsedSeconds:0, gameOver:false, hintCells:{}, realSolvedBeforeSurrender: 0 };
         _playerDataRef = data;
         window._playerData = data;
         renderPlayer(data);
@@ -1121,9 +1120,11 @@
     }
 
     function clearAll() {
-        const data=window._playerData; if(!data) return;
+        const data = window._playerData;
+        if (!data) return;
         playerState.answers={}; playerState.solved={}; playerState.hintCells={}; stopTimer();
         playerState.startTime=null; playerState.elapsedSeconds=0;
+        playerState.gameOver = false;
         const td = el('timer-display'); if(td) td.textContent='00:00';
         document.querySelectorAll('.cell input').forEach(inp=>inp.value='');
         document.querySelectorAll('.cell').forEach(c=>c.classList.remove('correct-cell','wrong-cell','highlight','active-cell','hint-cell'));
@@ -1135,7 +1136,10 @@
 
     function surrender() {
         const data=window._playerData; if(!data) return;
-        stopTimer(); playerState.gameOver=true;
+        stopTimer();
+        // Запоминаем реальное количество решённых слов
+        playerState.realSolvedBeforeSurrender = Object.keys(playerState.solved).length;
+        playerState.gameOver=true;
         const gd=data.gridData;
         gd.placedWords.forEach(pw => {
             const cells = getWordCellsByPlacement(pw, gd);
@@ -1146,7 +1150,7 @@
             playerState.solved[`${pw.number}-${pw.direction}`]=true;
         });
         updateProgress();
-        showVictoryScreen(true);
+        showVictoryScreen(true, playerState.realSolvedBeforeSurrender);
     }
 
     function updateProgress() {
@@ -1162,12 +1166,12 @@
         if(done>=total && total>0 && !playerState.gameOver) { stopTimer(); playerState.gameOver=true; showVictoryScreen(false); }
     }
 
-    function showVictoryScreen(surrendered) {
+    function showVictoryScreen(surrendered, realSolvedCount) {
         const data = window._playerData;
         const timeStr = el('timer-display')?.textContent || '??:??';
         const hintsUsed = Object.keys(playerState.hintCells).length;
         const totalWords = data.gridData.placedWords.length;
-        const solvedWords = Object.keys(playerState.solved).length;
+        const solvedWords = surrendered ? (realSolvedCount !== undefined ? realSolvedCount : Object.keys(playerState.solved).length) : Object.keys(playerState.solved).length;
         const box = el('congrats'); if(!box) return;
         box.style.display='block';
 
@@ -1179,7 +1183,7 @@
 
         box.innerHTML = `
             <h2>${surrendered ? 'Вы сдались' : '🎉 Поздравляем!'}</h2>
-            <p>Время: ${timeStr}${hintsUsed ? ` · Подсказок: ${hintsUsed}` : ''}<br>Решено слов: ${solvedWords} из ${totalWords}</p>
+            <p>Время: ${timeStr}${hintsUsed ? ` · Подсказок: ${hintsUsed}` : ''}<br>Решено слов: ${solvedWords} из ${totalWords}${surrendered ? ' (сдался)' : ''}</p>
             <ul>${wordList}</ul>
             <button class="btn btn-share" onclick="shareResult(${surrendered})">📷 Поделиться результатом</button>
             <div id="share-card"></div>`;
@@ -1192,7 +1196,7 @@
         const timeStr = el('timer-display')?.textContent || '??:??';
         const hintsUsed = Object.keys(playerState.hintCells).length;
         const totalWords = data.gridData.placedWords.length;
-        const solvedWords = Object.keys(playerState.solved).length;
+        const solvedWords = surrendered ? (playerState.realSolvedBeforeSurrender || 0) : Object.keys(playerState.solved).length;
         const gd = data.gridData;
         const title = data.title || 'Кроссворд';
         const today = new Date().toLocaleDateString('ru-RU', {day:'numeric', month:'long', year:'numeric'});
@@ -1219,13 +1223,12 @@
                 </div>
                 <div>
                     <div class="share-stat-label">Решено</div>
-                    <div class="share-stat-val">${solvedWords} / ${totalWords}</div>
+                    <div class="share-stat-val">${solvedWords} / ${totalWords}${surrendered ? ' (сдался)' : ''}</div>
                 </div>
                 ${hintsUsed ? `<div><div class="share-stat-label">Подсказок</div><div class="share-stat-val">${hintsUsed}</div></div>` : ''}
-                ${surrendered ? `<div><div class="share-stat-label">Итог</div><div class="share-stat-val" style="color:var(--accent)">Сдался</div></div>` : ''}
             </div>
             <div class="share-grid-wrap">${gridHTML}</div>
-            <div class="share-card-footer">crossword-news.app · ${today}</div>`;
+            <div class="share-card-footer">${today}</div>`;
         return card;
     }
 
@@ -1246,24 +1249,57 @@
             });
             card.classList.remove('visible');
 
-            const imgDataUrl = canvas.toDataURL('image/png');
+            const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+            const url = URL.createObjectURL(blob);
 
+            // Всегда показываем превью с кнопкой скачать
             const overlay = document.createElement('div');
             overlay.id = 'img-modal';
-            overlay.style = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.8);display:flex;align-items:center;justify-content:center;z-index:9999';
-            overlay.onclick = () => overlay.remove();
-
+            overlay.style = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.8);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999';
+            
             const img = document.createElement('img');
-            img.src = imgDataUrl;
-            img.style = 'max-width:90%;max-height:90%;box-shadow:0 0 20px rgba(0,0,0,0.5);border-radius:4px';
+            img.src = url;
+            img.style = 'max-width:90%;max-height:70%;box-shadow:0 0 20px rgba(0,0,0,0.5);border-radius:4px;margin-bottom:20px';
             img.onclick = (e) => e.stopPropagation();
 
-            const hint = document.createElement('div');
-            hint.style = 'position:fixed;bottom:20px;color:white;font-family:Georgia,serif;font-size:14px;text-align:center;width:100%';
-            hint.textContent = 'Удерживайте изображение, чтобы сохранить';
+            const btnRow = document.createElement('div');
+            btnRow.style = 'display:flex;gap:12px';
 
+            const downloadBtn = document.createElement('button');
+            downloadBtn.textContent = 'Скачать';
+            downloadBtn.style = 'padding:10px 24px;font-family:Georgia,serif;font-size:16px;background:#25a244;color:white;border:none;border-radius:4px;cursor:pointer';
+            downloadBtn.onclick = (e) => {
+                e.stopPropagation();
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'crossword-result.png';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+            };
+
+            const closeBtn = document.createElement('button');
+            closeBtn.textContent = 'Закрыть';
+            closeBtn.style = 'padding:10px 24px;font-family:Georgia,serif;font-size:16px;background:#5a5650;color:white;border:none;border-radius:4px;cursor:pointer';
+            closeBtn.onclick = (e) => {
+                e.stopPropagation();
+                overlay.remove();
+                URL.revokeObjectURL(url);
+            };
+
+            const hint = document.createElement('div');
+            hint.style = 'color:white;font-family:Georgia,serif;font-size:13px;margin-top:16px;text-align:center';
+            hint.textContent = isMobile() ? 'Или удерживайте изображение, чтобы сохранить' : '';
+
+            btnRow.appendChild(downloadBtn);
+            btnRow.appendChild(closeBtn);
             overlay.appendChild(img);
+            overlay.appendChild(btnRow);
             overlay.appendChild(hint);
+            overlay.onclick = () => {
+                overlay.remove();
+                URL.revokeObjectURL(url);
+            };
             document.body.appendChild(overlay);
 
         } catch (err) {
