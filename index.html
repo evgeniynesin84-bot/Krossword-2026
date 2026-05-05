@@ -155,6 +155,50 @@
     const el = id => document.getElementById(id);
     const esc = s => (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 
+    // ---------- Сериализация / десериализация ----------
+    function serialize(data) {
+        const obj = { t:data.title, w:data.words.map(w=>({w:w.word,c:w.clue,h:w.hint||''})),
+            p:data.gridData.placedWords.map(pw=>({i:pw.wordIndex,r:pw.startRow,o:pw.startCol,d:pw.direction==='across'?'a':'d',n:pw.number})),
+            g:{rs:data.gridData.rows,cs:data.gridData.cols,cl:data.gridData.cells,cn:data.gridData.cellNumbers} };
+        return btoa(unescape(encodeURIComponent(JSON.stringify(obj))));
+    }
+    function deserialize(str) {
+        const obj = JSON.parse(decodeURIComponent(escape(atob(str))));
+        const words = obj.w.map(w=>({word:w.w,clue:w.c,hint:w.h||''}));
+        return { title:obj.t, words,
+            gridData: { rows:obj.g.rs, cols:obj.g.cs, cells:obj.g.cl, cellNumbers:obj.g.cn,
+                placedWords: obj.p.map(p=>({wordIndex:p.i,startRow:p.r,startCol:p.o,direction:p.d==='a'?'across':'down',number:p.n,word:words[p.i].word})) } };
+    }
+
+    // Получение данных из URL (новый query-параметр или старый hash)
+    function getDataFromUrl() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const dataParam = urlParams.get('data');
+        if (dataParam) {
+            try { return deserialize(dataParam); } catch(e) { console.warn(e); return null; }
+        }
+        // обратная совместимость: старые ссылки с #
+        const hash = window.location.hash.slice(1);
+        if (hash) {
+            try { return deserialize(hash); } catch(e) { console.warn(e); return null; }
+        }
+        return null;
+    }
+
+    // Генерация ссылки с query-параметром
+    function getShareableUrl(data) {
+        const base = window.location.origin + window.location.pathname;
+        return base + '?data=' + encodeURIComponent(serialize(data));
+    }
+
+    // Очистка параметров URL (возврат в редактор)
+    function clearUrlAndGoToEditor() {
+        const cleanUrl = window.location.origin + window.location.pathname;
+        window.history.pushState({}, document.title, cleanUrl);
+        backToEditor(); // перерисовываем редактор
+    }
+
+    // ---------- Логика сетки (без изменений) ----------
     function getWordCellsByPlacement(pw, gd) {
         const cells = [];
         for (let i=0; i<pw.word.length; i++) {
@@ -227,21 +271,7 @@
         return { rows: maxRow-minRow+1, cols: maxCol-minCol+1, cells: normCells, placedWords: normPlaced, cellNumbers: cellNums };
     }
 
-    function serialize(data) {
-        const obj = { t:data.title, w:data.words.map(w=>({w:w.word,c:w.clue,h:w.hint||''})),
-            p:data.gridData.placedWords.map(pw=>({i:pw.wordIndex,r:pw.startRow,o:pw.startCol,d:pw.direction==='across'?'a':'d',n:pw.number})),
-            g:{rs:data.gridData.rows,cs:data.gridData.cols,cl:data.gridData.cells,cn:data.gridData.cellNumbers} };
-        return btoa(unescape(encodeURIComponent(JSON.stringify(obj))));
-    }
-    function deserialize(str) {
-        const obj = JSON.parse(decodeURIComponent(escape(atob(str))));
-        const words = obj.w.map(w=>({word:w.w,clue:w.c,hint:w.h||''}));
-        return { title:obj.t, words,
-            gridData: { rows:obj.g.rs, cols:obj.g.cs, cells:obj.g.cl, cellNumbers:obj.g.cn,
-                placedWords: obj.p.map(p=>({wordIndex:p.i,startRow:p.r,startCol:p.o,direction:p.d==='a'?'across':'down',number:p.n,word:words[p.i].word})) } };
-    }
-
-    // === РЕДАКТОР ===
+    // ---------- РЕДАКТОР ----------
     function addWord() {
         const w = el('word-input')?.value.trim().toUpperCase();
         const c = el('clue-input')?.value.trim();
@@ -288,19 +318,25 @@
             lay.innerHTML += `<div class="section"><div class="section-label">Публикация</div>
                 <button class="btn btn-primary" onclick="generateLink()">🔗 Создать ссылку</button>
                 <button class="btn" onclick="previewPlayer()">👁 Предпросмотр</button>
-                <div id="link-output" style="display:none;margin-top:1rem"><div class="link-box" id="link-text" onclick="copyLink(this)"></div><div class="link-note">Нажми чтобы скопировать</div></div></div>`;
+                <div id="link-output" style="display:none;margin-top:1rem"><div class="link-box" id="link-text" onclick="copyLink(this)"></div><div class="link-note" id="link-note">Нажми чтобы скопировать</div></div></div>`;
         }
     }
     function generateLink() {
         if(!editorState.gridData) return alert('Соберите кроссворд');
-        const url = location.href.split('#')[0] + '#' + serialize(editorState);
-        el('link-output').style.display=''; el('link-text').textContent=url;
+        const url = getShareableUrl(editorState);
+        el('link-output').style.display='';
+        const linkBox = el('link-text');
+        if(linkBox) linkBox.textContent = url;
     }
-    function copyLink(el) {
-        navigator.clipboard?.writeText(el.textContent).then(()=>{ el('link-note').textContent='✓ Скопировано!'; setTimeout(()=>el('link-note').textContent='Нажми чтобы скопировать',2000); });
+    function copyLink(boxElement) {
+        navigator.clipboard?.writeText(boxElement.textContent).then(()=>{
+            const note = document.getElementById('link-note');
+            if(note) note.textContent = '✓ Скопировано!';
+            setTimeout(()=>{ if(note) note.textContent='Нажми чтобы скопировать'; },2000);
+        });
     }
 
-    // === ИГРОК ===
+    // ---------- ИГРОК ----------
     function previewPlayer() { if(!editorState.gridData) return alert('Соберите кроссворд'); switchToPlayer(editorState); }
     function switchToPlayer(data) {
         appMode='player';
@@ -320,7 +356,6 @@
         });
         across.sort((a,b)=>a.num-b.num); down.sort((a,b)=>a.num-b.num);
 
-        // Верхняя панель
         const top = document.createElement('div');
         top.className='section';
         top.innerHTML = `
@@ -330,24 +365,21 @@
                 <button class="btn btn-sm" onclick="checkAll()">Проверить</button>
                 <button class="btn btn-sm" onclick="clearAll()">Сбросить</button>
                 <button class="btn btn-sm" onclick="surrender()">Сдаюсь</button>
-                ${!location.hash?'<button class="btn btn-sm" onclick="backToEditor()">← Редактор</button>':''}
+                ${!window.location.search && !window.location.hash ? '<button class="btn btn-sm" onclick="clearUrlAndGoToEditor()">← Редактор</button>' : ''}
             </div>
             <div style="font-size:11px;color:var(--ink3);margin-top:6px">←↑↓→ двигаться | клик по вопросу/клетке | ввод букв</div>
         `;
         lay.appendChild(top);
 
-        // Победный экран (изначально скрыт)
         const congrats = document.createElement('div');
         congrats.className='congrats-box'; congrats.id='congrats';
         lay.appendChild(congrats);
 
-        // Активный вопрос
         const activeBox = document.createElement('div');
         activeBox.className='active-clue-box'; activeBox.id='active-box';
         activeBox.innerHTML = '<div class="num">Выберите клетку</div><div>Кликните на клетку или вопрос</div>';
         lay.appendChild(activeBox);
 
-        // Сетка с прокруткой
         const gridWrap = document.createElement('div');
         gridWrap.className='section';
         gridWrap.innerHTML = '<div class="section-label">Кроссворд</div><div class="grid-scroll" id="grid-scroll-container"></div>';
@@ -378,9 +410,8 @@
             }
             gridEl.appendChild(cell);
         }
-        el('grid-scroll-container').appendChild(gridEl);
+        document.getElementById('grid-scroll-container').appendChild(gridEl);
 
-        // Вопросы
         const cluesSec = document.createElement('div');
         cluesSec.className='section';
         cluesSec.innerHTML = `<div class="section-label">Вопросы</div><div class="clues-cols"><div><div class="clues-dir-title">→ По горизонтали</div><div id="clues-across"></div></div><div><div class="clues-dir-title">↓ По вертикали</div><div id="clues-down"></div></div></div>`;
@@ -407,7 +438,8 @@
         playerState.selected=key;
         highlightWord(r,c,playerState.direction,data);
         showActiveClue(r,c,playerState.direction,data);
-        el('dir-indicator').textContent = playerState.direction==='across'?'→ (горизонталь)':'↓ (вертикаль)';
+        const dirInd = el('dir-indicator');
+        if(dirInd) dirInd.textContent = playerState.direction==='across'?'→ (горизонталь)':'↓ (вертикаль)';
     }
 
     function highlightWord(r,c,dir,data) {
@@ -459,7 +491,8 @@
             highlightWord(nr,nc,playerState.direction,data);
             document.querySelector(`#cell-${nr}-${nc} input`)?.focus();
             showActiveClue(nr,nc,playerState.direction,data);
-            el('dir-indicator').textContent = playerState.direction==='across'?'→ (горизонталь)':'↓ (вертикаль)';
+            const dirInd = el('dir-indicator');
+            if(dirInd) dirInd.textContent = playerState.direction==='across'?'→ (горизонталь)':'↓ (вертикаль)';
         }
     }
 
@@ -526,8 +559,10 @@
     function updateProgress() {
         const total = window._playerData.gridData.placedWords.length;
         const done = Object.keys(playerState.solved).length;
-        el('prog-fill').style.width = total? (done/total*100)+'%' : '0%';
-        el('prog-label').textContent = `${done} / ${total}`;
+        const progFill = el('prog-fill');
+        const progLabel = el('prog-label');
+        if(progFill) progFill.style.width = total? (done/total*100)+'%' : '0%';
+        if(progLabel) progLabel.textContent = `${done} / ${total}`;
     }
 
     function checkVictory() {
@@ -554,28 +589,38 @@
 
     function backToEditor() {
         stopTimer();
-        appMode='editor'; el('mode-badge').textContent='Редактор'; el('mode-badge').className='mode-pill mode-editor';
-        el('app-heading').textContent='Кроссворд‑новости'; el('app-sub').textContent='Добавь слова — сетка соберётся сама';
-        location.hash=''; renderEditor();
-    }
-
-    function init() {
-        const hash = location.hash.slice(1);
-        if(hash) {
-            try { const data=deserialize(hash); window._playerData=data; switchToPlayer(data); return; }
-            catch(e){ alert('Ошибка загрузки'); location.hash=''; }
-        }
+        appMode='editor'; 
+        el('mode-badge').textContent='Редактор'; 
+        el('mode-badge').className='mode-pill mode-editor';
+        el('app-heading').textContent='Кроссворд‑новости'; 
+        el('app-sub').textContent='Добавь слова — сетка соберётся сама';
         renderEditor();
     }
-    window.addEventListener('hashchange', ()=>{
-        const hash=location.hash.slice(1);
-        if(hash) { try{ const d=deserialize(hash); window._playerData=d; switchToPlayer(d); }catch(e){ backToEditor(); } }
-        else backToEditor();
-    });
 
-    window.addWord=addWord; window.removeWord=removeWord; window.buildGrid=buildGrid;
-    window.generateLink=generateLink; window.copyLink=copyLink; window.previewPlayer=previewPlayer;
-    window.checkAll=checkAll; window.clearAll=clearAll; window.surrender=surrender; window.backToEditor=backToEditor;
+    // ---------- ИНИЦИАЛИЗАЦИЯ ----------
+    function init() {
+        const dataFromUrl = getDataFromUrl();
+        if(dataFromUrl) {
+            window._playerData = dataFromUrl;
+            switchToPlayer(dataFromUrl);
+        } else {
+            renderEditor();
+        }
+    }
+
+    // Глобальные функции для кнопок
+    window.addWord = addWord;
+    window.removeWord = removeWord;
+    window.buildGrid = buildGrid;
+    window.generateLink = generateLink;
+    window.copyLink = copyLink;
+    window.previewPlayer = previewPlayer;
+    window.checkAll = checkAll;
+    window.clearAll = clearAll;
+    window.surrender = surrender;
+    window.backToEditor = backToEditor;
+    window.clearUrlAndGoToEditor = clearUrlAndGoToEditor;
+
     init();
 })();
 </script>
