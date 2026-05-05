@@ -4,7 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Кроссворд‑новости</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js">
+    </script>
     <style>
         :root {
             --bg: #f5f3ee;
@@ -36,7 +37,6 @@
             background: var(--bg);
             color: var(--ink);
             min-height: 100vh;
-            /* Prevent scroll bounce on iOS */
             overscroll-behavior: none;
         }
 
@@ -64,7 +64,6 @@
         .section { background: var(--paper); border: 1px solid var(--border); padding: 0.875rem; }
         .section-label { font-size: 10px; font-weight: 700; letter-spacing: 0.18em; text-transform: uppercase; color: var(--ink3); border-bottom: 1px solid var(--border); padding-bottom: 0.5rem; margin-bottom: 0.75rem; }
 
-        /* Сетка */
         .grid-scroll { overflow-x: auto; padding: 0.5rem 0; display: flex; justify-content: flex-start; -webkit-overflow-scrolling: touch; }
         .grid-container { display: inline-grid; gap: 1px; border: 2px solid var(--ink); background: var(--ink); user-select: none; touch-action: manipulation; }
         .cell {
@@ -86,12 +85,10 @@
             text-align: center; font-size: 17px; font-family: 'Georgia', serif; font-weight: 700;
             color: var(--ink); text-transform: uppercase; cursor: pointer; padding-top: 8px;
             caret-color: transparent;
-            /* Mobile input fixes */
             -webkit-user-select: none; user-select: none;
             autocomplete: off;
         }
 
-        /* Кнопки */
         .btn { font-family: 'Georgia', serif; font-size: 13px; padding: 9px 16px; border: 1.5px solid var(--ink); background: none; color: var(--ink); cursor: pointer; letter-spacing: 0.03em; transition: all 0.15s; white-space: nowrap; touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
         .btn:hover { background: var(--ink); color: var(--paper); }
         .btn:active { opacity: 0.7; }
@@ -102,14 +99,12 @@
         .btn-sm { font-size: 11px; padding: 7px 11px; }
         .btn-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-top: 0.5rem; }
 
-        /* Поля */
         .field { margin-bottom: 0.75rem; }
         .field label { display: block; font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink2); margin-bottom: 4px; }
         .field input, .field textarea { width: 100%; font-family: 'Georgia', serif; font-size: 14px; padding: 8px 10px; border: 1px solid var(--border); background: var(--paper); color: var(--ink); outline: none; transition: border-color 0.15s; border-radius: 0; -webkit-appearance: none; }
         .field input:focus, .field textarea:focus { border-color: var(--accent); }
         .field textarea { resize: vertical; min-height: 56px; }
 
-        /* Список слов редактора */
         .word-editor-item { border: 1px solid var(--border); padding: 0.75rem; margin-bottom: 0.75rem; background: var(--bg); position: relative; }
         .word-editor-item.editing { border-color: var(--accent); background: var(--paper); }
         .word-editor-header { display: flex; align-items: center; gap: 8px; margin-bottom: 0.4rem; }
@@ -124,18 +119,15 @@
         .word-editor-edit { background: none; border: 1px solid var(--border); color: var(--ink2); cursor: pointer; font-size: 12px; padding: 3px 9px; font-family: 'Georgia', serif; }
         .word-editor-edit:hover { color: var(--accent2); border-color: var(--accent2); }
         .word-editor-save { background: var(--accent2); border: 1px solid var(--accent2); color: white; cursor: pointer; font-size: 12px; padding: 3px 9px; font-family: 'Georgia', serif; }
-        /* Inline edit fields */
         .inline-edit-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 0.5rem; }
         .inline-edit-grid .full { grid-column: 1/-1; }
         .inline-edit-label { font-size: 10px; color: var(--ink3); display: block; margin-bottom: 2px; letter-spacing: 0.08em; text-transform: uppercase; }
         .inline-edit-input { font-size: 13px; padding: 5px 8px; width: 100%; border: 1px solid var(--border); background: var(--paper); color: var(--ink); font-family: 'Georgia', serif; outline: none; -webkit-appearance: none; border-radius: 0; }
         .inline-edit-input:focus { border-color: var(--accent); }
 
-        /* Предупреждение дубликата */
         .dup-warning { font-size: 12px; color: var(--accent); margin-top: 4px; display: none; }
         .dup-warning.visible { display: block; }
 
-        /* Импорт */
         .import-tabs { display: flex; gap: 0; margin-bottom: 0.875rem; border-bottom: 1px solid var(--border); }
         .import-tab { font-family: 'Georgia', serif; font-size: 12px; padding: 6px 14px; background: none; border: none; border-bottom: 2px solid transparent; cursor: pointer; color: var(--ink3); letter-spacing: 0.04em; margin-bottom: -1px; }
         .import-tab.active { color: var(--accent2); border-bottom-color: var(--accent2); font-weight: 700; }
@@ -152,7 +144,6 @@
         .import-result.ok { color: #2a7a20; display: block; }
         .import-result.err { color: var(--accent); display: block; }
 
-        /* Вопросы игрока */
         .clues-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
         @media (max-width: 600px) { .clues-cols { grid-template-columns: 1fr; } }
         .clues-dir-title { font-size: 11px; font-weight: 700; letter-spacing: 0.15em; text-transform: uppercase; color: var(--ink2); margin-bottom: 0.5rem; border-bottom: 1px solid var(--border); padding-bottom: 0.25rem; }
@@ -165,12 +156,10 @@
         .clue-hint-link { display: inline-block; font-size: 11px; color: var(--accent2); text-decoration: none; margin-top: 2px; letter-spacing: 0.02em; }
         .clue-hint-link:hover { text-decoration: underline; }
 
-        /* Активная подсказка + мобильная нижняя панель */
         .active-clue-box { background: var(--active); border: 1.5px solid var(--active-border); padding: 0.75rem; margin: 0.5rem 0; min-height: 3rem; font-size: 14px; }
         .active-clue-box .num { font-size: 11px; font-weight: 700; color: var(--ink2); margin-bottom: 2px; }
         .hint-visible { margin-top: 4px; font-size: 12px; }
 
-        /* Мобильная нижняя панель */
         .mobile-clue-bar {
             display: none;
             position: fixed;
@@ -189,7 +178,6 @@
         .mobile-clue-text { font-size: 13px; line-height: 1.35; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .mobile-clue-dir-btn { background: var(--bg); border: 1px solid var(--border); font-size: 11px; font-family: 'Georgia', serif; padding: 4px 8px; cursor: pointer; flex-shrink: 0; touch-action: manipulation; }
 
-        /* Отступ снизу когда видна мобильная панель */
         body.mobile-bar-visible .layout { padding-bottom: 4rem; }
 
         .progress-row { display: flex; align-items: center; gap: 10px; margin-bottom: 0.25rem; }
@@ -210,7 +198,6 @@
         .btn-share:hover { background: #1a8035; border-color: #1a8035; color: white; }
         .btn-share:disabled { opacity: 0.6; cursor: default; }
 
-        /* Карточка для скриншота */
         #share-card {
             background: var(--paper);
             border: 2px solid var(--ink);
@@ -240,15 +227,12 @@
         .link-box:hover { border-color: var(--accent2); }
         .link-note { font-size: 11px; color: var(--ink3); margin-top: 4px; }
 
-        /* Предупреждение о словах вне сетки */
         .grid-warning { background: #fff8e8; border: 1px solid #e8a020; padding: 0.6rem 0.875rem; font-size: 13px; color: #7a5000; margin-top: 0.75rem; display: none; }
         .grid-warning.visible { display: block; }
 
-        /* Штраф таймера */
         .penalty-flash { color: var(--accent) !important; animation: flash 0.6s ease; }
         @keyframes flash { 0%,100%{opacity:1} 50%{opacity:0.3} }
 
-        /* Мобильный адаптив */
         @media (max-width: 480px) {
             :root { --cell-size: 38px; }
             .masthead { padding: 0.6rem 1rem; }
@@ -275,7 +259,6 @@
 
 <div class="layout" id="app-layout"></div>
 
-<!-- Мобильная нижняя панель с подсказкой -->
 <div class="mobile-clue-bar" id="mobile-clue-bar">
     <div class="mobile-clue-nav">
         <button onclick="mobileNavPrev()" title="Предыдущее слово">‹</button>
@@ -295,15 +278,14 @@
     let playerState = {
         answers: {}, selected: null, direction: 'across', solved: {},
         timerInterval: null, startTime: null, elapsedSeconds: 0, gameOver: false,
-        hintCells: {} // ячейки, открытые подсказкой
+        hintCells: {}
     };
-    let _playerDataRef = null; // храним ссылку для мобильной навигации
+    let _playerDataRef = null;
 
     const el = id => document.getElementById(id);
     const esc = s => (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
     const isMobile = () => window.innerWidth <= 700 || ('ontouchstart' in window);
 
-    // ---------- Сериализация / десериализация ----------
     function serialize(data) {
         const obj = { t:data.title, w:data.words.map(w=>({w:w.word,c:w.clue,h:w.hint||''})),
             p:data.gridData.placedWords.map(pw=>({i:pw.wordIndex,r:pw.startRow,o:pw.startCol,d:pw.direction==='across'?'a':'d',n:pw.number})),
@@ -337,7 +319,6 @@
         backToEditor();
     }
 
-    // ---------- Логика сетки ----------
     function getWordCellsByPlacement(pw, gd) {
         const cells = [];
         for (let i=0; i<pw.word.length; i++) {
@@ -348,7 +329,6 @@
         return cells;
     }
 
-    // Вычисляет компактность сетки: площадь bounding box + штраф за несвязанные слова
     function calcGridScore(cells, placedCount, totalWords) {
         const keys = Object.keys(cells);
         if (!keys.length) return Infinity;
@@ -356,53 +336,8 @@
         const cols = keys.map(k=>+k.split(',')[1]);
         const w = Math.max(...cols) - Math.min(...cols) + 1;
         const h = Math.max(...rows) - Math.min(...rows) + 1;
-        // штраф: несвязанные слова (размещённые без пересечений) делают сетку хуже
         const unconnected = totalWords - placedCount;
         return w * h + unconnected * 50;
-    }
-
-    // Проверяет, что соседние клетки не конфликтуют (параллельные слова вплотную)
-    function checkNeighbors(cand, existingCells, dir) {
-        for (const [key] of Object.entries(cand)) {
-            const [r,c] = key.split(',').map(Number);
-            // для горизонтального слова проверяем клетки выше/ниже (не пересечение)
-            if (dir === 'across') {
-                const above = `${r-1},${c}`, below = `${r+1},${c}`;
-                if (existingCells[above] && !cand[above]) return false;
-                if (existingCells[below] && !cand[below]) return false;
-            } else {
-                const left = `${r},${c-1}`, right = `${r},${c+1}`;
-                if (existingCells[left] && !cand[left]) return false;
-                if (existingCells[right] && !cand[right]) return false;
-            }
-        }
-        return true;
-    }
-
-    // Улучшенный алгоритм: несколько попыток с разными начальными направлениями, выбор компактного результата
-    function arrangeGrid(words) {
-        if (!words.length) return null;
-
-        const sorted = words.map((w,i)=>({...w, _origIndex:i}));
-        sorted.sort((a,b)=>b.word.length - a.word.length);
-
-        // Пробуем разные начальные направления и выбираем лучший результат
-        const attempts = [
-            () => tryArrange(sorted, 'across'),
-            () => tryArrange(sorted, 'down'),
-        ];
-
-        let bestResult = null;
-        let bestScore = Infinity;
-
-        for (const attempt of attempts) {
-            const result = attempt();
-            if (!result) continue;
-            const score = calcGridScore(result.cells, result.placedWords.length, sorted.length);
-            if (score < bestScore) { bestScore = score; bestResult = result; }
-        }
-
-        return bestResult ? finalizeGrid(bestResult) : null;
     }
 
     function tryArrange(sorted, firstDir) {
@@ -431,7 +366,6 @@
                             newDir='across'; newStartRow = pw.startRow + pi; newStartCol = pw.startCol - ci;
                         }
 
-                        // Проверяем вхождение слова
                         const cand = {}; let valid = true;
                         for (let c2=0; c2<currWord.length; c2++) {
                             const r = newDir==='across' ? newStartRow : newStartRow + c2;
@@ -442,28 +376,18 @@
                         }
                         if (!valid) continue;
 
-                        // Проверяем, что слово не примыкает к другому параллельному слову
-                        // (допускаем только пересечения, не касания)
-                        // Проверяем начало и конец слова — там не должно быть продолжения
                         if (newDir === 'across') {
-                            const beforeKey = `${newStartRow},${newStartCol-1}`;
-                            const afterKey = `${newStartRow},${newStartCol+currWord.length}`;
-                            if (cells[beforeKey] || cells[afterKey]) { valid=false; }
+                            if (cells[`${newStartRow},${newStartCol-1}`] || cells[`${newStartRow},${newStartCol+currWord.length}`]) valid=false;
                         } else {
-                            const beforeKey = `${newStartRow-1},${newStartCol}`;
-                            const afterKey = `${newStartRow+currWord.length},${newStartCol}`;
-                            if (cells[beforeKey] || cells[afterKey]) { valid=false; }
+                            if (cells[`${newStartRow-1},${newStartCol}`] || cells[`${newStartRow+currWord.length},${newStartCol}`]) valid=false;
                         }
                         if (!valid) continue;
 
-                        // Считаем пересечения (уже занятые клетки = пересечение)
                         let intersections = 0;
                         for (const k of Object.keys(cand)) { if (cells[k]) intersections++; }
-                        if (intersections === 0) continue; // требуем хотя бы одно пересечение
+                        if (intersections === 0) continue;
 
-                        // Оцениваем позицию: предпочитаем пересечение ближе к середине слов
                         const centerScore = -(Math.abs(pi - pw.word.length/2) + Math.abs(ci - currWord.length/2));
-                        // Считаем гипотетический bounding box после добавления
                         const tempCells = {...cells, ...cand};
                         const tKeys = Object.keys(tempCells);
                         const tRows = tKeys.map(k=>+k.split(',')[0]);
@@ -480,7 +404,6 @@
                 Object.assign(cells, best.cells);
                 placedWords.push({wordIndex:curr._origIndex, startRow:best.startRow, startCol:best.startCol, direction:best.direction, word:currWord});
             } else {
-                // Слово не встало в сетку — добавляем отдельно
                 const keys = Object.keys(cells);
                 const maxRow = keys.length ? Math.max(...keys.map(k=>+k.split(',')[0])) : 0;
                 const newRow = maxRow + 2, newCol = 0;
@@ -490,6 +413,27 @@
         }
 
         return { cells, placedWords };
+    }
+
+    function arrangeGrid(words) {
+        if (!words.length) return null;
+        const sorted = words.map((w,i)=>({...w, _origIndex:i}));
+        sorted.sort((a,b)=>b.word.length - a.word.length);
+
+        const attempts = [
+            () => tryArrange(sorted, 'across'),
+            () => tryArrange(sorted, 'down'),
+        ];
+
+        let bestResult = null;
+        let bestScore = Infinity;
+        for (const attempt of attempts) {
+            const result = attempt();
+            if (!result) continue;
+            const score = calcGridScore(result.cells, result.placedWords.length, sorted.length);
+            if (score < bestScore) { bestScore = score; bestResult = result; }
+        }
+        return bestResult ? finalizeGrid(bestResult) : null;
     }
 
     function finalizeGrid({ cells, placedWords }) {
@@ -517,14 +461,10 @@
         return { rows:maxRow-minRow+1, cols:maxCol-minCol+1, cells:normCells, placedWords:normPlaced, cellNumbers:cellNums };
     }
 
-    // ---------- ИМПОРТ ----------
-
-    // Парсим текст в формате: СЛОВО;Описание;https://hint (разделитель ; или , или TAB)
     function parseImportText(text) {
         const lines = text.split(/\r?\n/).map(l=>l.trim()).filter(l=>l && !l.startsWith('#'));
         const added = [], skipped = [], errors = [];
         lines.forEach((line, idx) => {
-            // Определяем разделитель: ; или TAB или ,
             let parts;
             if(line.includes(';')) parts = line.split(';');
             else if(line.includes('\t')) parts = line.split('\t');
@@ -568,9 +508,7 @@
     function handleImportFile(file) {
         if(!file) return;
         const reader = new FileReader();
-        reader.onload = e => {
-            importFromText(e.target.result, 'import-file-result');
-        };
+        reader.onload = e => { importFromText(e.target.result, 'import-file-result'); };
         reader.readAsText(file, 'UTF-8');
     }
 
@@ -578,8 +516,6 @@
         document.querySelectorAll('.import-tab').forEach(t => t.classList.toggle('active', t.dataset.tab===tab));
         document.querySelectorAll('.import-panel').forEach(p => p.classList.toggle('active', p.dataset.panel===tab));
     }
-
-    // ---------- РЕДАКТОР ----------
 
     function checkDuplicate(word) {
         const clean = word.trim().toUpperCase().replace(/\s/g,'');
@@ -641,7 +577,6 @@
         const newHint = (el(`ie-hint-${i}`)?.value||'').trim();
         if(!newWord||!newClue) return alert('Заполните слово и описание');
         if(newWord.length<2) return alert('Минимум 2 буквы');
-        // Проверка дублей (исключаем себя)
         const isDup = editorState.words.some((w,idx) => idx!==i && w.word.toUpperCase()===newWord);
         if(isDup) return alert(`Слово «${newWord}» уже есть в списке`);
         editorState.words[i] = {word:newWord, clue:newClue, hint:newHint};
@@ -657,12 +592,9 @@
 
     function renderEditor() {
         const lay = el('app-layout'); lay.className='layout'; lay.innerHTML = '';
-
-        // Мобильную панель скрываем
         el('mobile-clue-bar').classList.remove('visible');
         document.body.classList.remove('mobile-bar-visible');
 
-        // Настройки
         const settingsDiv = document.createElement('div');
         settingsDiv.className = 'section';
         settingsDiv.innerHTML = `<div class="section-label">Настройки</div>
@@ -670,7 +602,6 @@
             <input id="edit-title" value="${esc(editorState.title)}" oninput="editorState.title=this.value"></div>`;
         lay.appendChild(settingsDiv);
 
-        // Добавить слово
         const addDiv = document.createElement('div');
         addDiv.className = 'section';
         addDiv.innerHTML = `<div class="section-label">Добавить слово</div>
@@ -683,7 +614,6 @@
             <button class="btn btn-primary" onclick="addWord()">+ Добавить</button>`;
         lay.appendChild(addDiv);
 
-        // Импорт из файла / текста
         const importDiv = document.createElement('div');
         importDiv.className = 'section';
         importDiv.innerHTML = `
@@ -692,7 +622,6 @@
                 <button class="import-tab active" data-tab="file" onclick="switchImportTab('file')">📂 Файл CSV/TXT</button>
                 <button class="import-tab" data-tab="paste" onclick="switchImportTab('paste')">📋 Вставить текст</button>
             </div>
-
             <div class="import-panel active" data-panel="file">
                 <div class="import-drop-zone" id="import-drop-zone" onclick="document.getElementById('import-file-input').click()">
                     <div class="import-drop-label">Нажмите или перетащите файл сюда</div>
@@ -707,7 +636,6 @@
                 </div>
                 <div id="import-file-result" class="import-result"></div>
             </div>
-
             <div class="import-panel" data-panel="paste">
                 <div class="field" style="margin-bottom:0.5rem">
                     <textarea id="import-paste-area" rows="6" placeholder="СЛОВО;Описание подсказки
@@ -723,7 +651,6 @@
             </div>`;
         lay.appendChild(importDiv);
 
-        // Drag & drop
         setTimeout(() => {
             const dz = el('import-drop-zone');
             if(!dz) return;
@@ -736,7 +663,6 @@
             });
         }, 0);
 
-        // Проверка дублей на лету
         setTimeout(() => {
             const wi = el('word-input');
             if(wi) wi.addEventListener('input', () => {
@@ -746,7 +672,6 @@
             });
         }, 0);
 
-        // Список слов
         if(editorState.words.length) {
             const listDiv = document.createElement('div');
             listDiv.className = 'section';
@@ -772,7 +697,6 @@
             lay.appendChild(listDiv);
         }
 
-        // Сетка
         const gridDiv = document.createElement('div');
         gridDiv.className = 'section';
         gridDiv.innerHTML = `<div class="section-label">Сетка</div>
@@ -783,7 +707,6 @@
 
         if(editorState.gridData) {
             const gd = editorState.gridData;
-            // Предупреждение о несвязанных словах
             const unconnected = gd.placedWords.filter(p=>p.unconnected);
             const warnEl = gridDiv.querySelector('#grid-warning');
             if(unconnected.length) {
@@ -799,7 +722,6 @@
             gridHTML += '</div></div>';
             gridDiv.querySelector('#grid-preview').innerHTML = gridHTML;
 
-            // Публикация
             const pubDiv = document.createElement('div');
             pubDiv.className = 'section';
             pubDiv.innerHTML = `<div class="section-label">Публикация</div>
@@ -828,7 +750,6 @@
         });
     }
 
-    // ---------- ИГРОК ----------
     function previewPlayer() { if(!editorState.gridData) return alert('Соберите кроссворд'); switchToPlayer(editorState); }
     function switchToPlayer(data) {
         appMode='player';
@@ -850,7 +771,6 @@
         });
         across.sort((a,b)=>a.num-b.num); down.sort((a,b)=>a.num-b.num);
 
-        // Панель управления
         const top = document.createElement('div');
         top.className='section';
         top.innerHTML = `
@@ -887,7 +807,6 @@
         gridWrap.innerHTML = `<div class="section-label">Кроссворд</div><div class="grid-scroll" id="grid-scroll-container"></div>`;
         lay.appendChild(gridWrap);
 
-        // Строим сетку
         const gridEl = document.createElement('div');
         gridEl.className='grid-container';
         gridEl.style.gridTemplateColumns = `repeat(${gd.cols}, var(--cell-size))`;
@@ -932,7 +851,6 @@
         }
         el('grid-scroll-container').appendChild(gridEl);
 
-        // Вопросы
         const cluesSec = document.createElement('div');
         cluesSec.className='section';
         cluesSec.innerHTML = `<div class="section-label">Вопросы</div>
@@ -944,7 +862,6 @@
         renderClueList(across, 'clues-across', data);
         renderClueList(down, 'clues-down', data);
 
-        // Мобильная нижняя панель
         if(isMobile()) {
             el('mobile-clue-bar').classList.add('visible');
             document.body.classList.add('mobile-bar-visible');
@@ -971,7 +888,6 @@
         });
     }
 
-    // ---------- Подсказка (открыть одну букву) ----------
     function revealHintLetter() {
         const data = window._playerData; if(!data) return;
         if(playerState.gameOver) return;
@@ -983,12 +899,10 @@
         const correctLetter = gd.cells[key];
         if(!correctLetter) return;
 
-        // Если уже правильно
         if((playerState.answers[key]||'').toUpperCase() === correctLetter.toUpperCase()) {
             alert('Эта буква уже верная!'); return;
         }
 
-        // Открываем букву
         playerState.answers[key] = correctLetter.toUpperCase();
         playerState.hintCells[key] = true;
         const inp = document.querySelector(`#cell-${r}-${c} input`);
@@ -996,20 +910,16 @@
         const cell = el(`cell-${r}-${c}`);
         if(cell) { cell.classList.remove('wrong-cell','highlight','active-cell'); cell.classList.add('hint-cell'); }
 
-        // Штраф +30 секунд
         if(!playerState.startTime) startTimer();
         playerState.elapsedSeconds += 30;
         playerState.startTime = Date.now() - playerState.elapsedSeconds * 1000;
 
-        // Мигающий эффект на таймере
         const timerEl = el('timer-display');
         if(timerEl) { timerEl.classList.add('penalty-flash'); setTimeout(()=>timerEl.classList.remove('penalty-flash'), 700); }
 
-        // Переходим к следующей клетке
         moveNext(r,c,data);
     }
 
-    // ---------- Навигация ----------
     function selectCell(r,c,data) {
         if(playerState.gameOver) return;
         const key=`${r},${c}`;
@@ -1076,11 +986,10 @@
             const w=data.words[pw.wordIndex];
             box.innerHTML = `<div class="num">#${pw.number} ${pw.direction==='across'?'→':'↓'} — ${pw.word.length} букв</div>
                 <div>${esc(w.clue)}</div>
-                ${w.hint?`<div class="hint-visible"><a href="${esc(w.hint)}" target="_blank">📰 Открыть источник</a></div>`:''}`;
+                ${w.hint?`<div class="hint-visible"><a href="${esc(w.hint)}" target="_blank" class="clue-hint-link">📰 Открыть источник</a></div>`:''}`;
         }
     }
 
-    // Мобильная нижняя панель
     function updateMobileClueBar(r,c,dir,data) {
         if(!isMobile()) return;
         const gd=data.gridData;
@@ -1100,7 +1009,6 @@
         if(dirBtn) dirBtn.textContent = dir==='across'?'→':'↓';
     }
 
-    // Навигация по словам на мобиле (следующее/предыдущее)
     function mobileNavNext() { mobileNavStep(1); }
     function mobileNavPrev() { mobileNavStep(-1); }
     function mobileNavStep(step) {
@@ -1171,7 +1079,6 @@
         else moveDir(r,c,1,0,data);
     }
 
-    // ---------- Таймер ----------
     function startTimer() {
         if(playerState.timerInterval) return;
         playerState.startTime = Date.now() - playerState.elapsedSeconds*1000;
@@ -1186,7 +1093,6 @@
         if(playerState.timerInterval) { clearInterval(playerState.timerInterval); playerState.timerInterval=null; }
     }
 
-    // ---------- Проверка / Сброс / Сдача ----------
     function checkAll() {
         const data=window._playerData; if(!data) return;
         const gd=data.gridData;
@@ -1260,6 +1166,8 @@
         const data = window._playerData;
         const timeStr = el('timer-display')?.textContent || '??:??';
         const hintsUsed = Object.keys(playerState.hintCells).length;
+        const totalWords = data.gridData.placedWords.length;
+        const solvedWords = Object.keys(playerState.solved).length;
         const box = el('congrats'); if(!box) return;
         box.style.display='block';
 
@@ -1271,7 +1179,7 @@
 
         box.innerHTML = `
             <h2>${surrendered ? 'Вы сдались' : '🎉 Поздравляем!'}</h2>
-            <p>Время: ${timeStr}${hintsUsed ? ` · Подсказок: ${hintsUsed}` : ''}</p>
+            <p>Время: ${timeStr}${hintsUsed ? ` · Подсказок: ${hintsUsed}` : ''}<br>Решено слов: ${solvedWords} из ${totalWords}</p>
             <ul>${wordList}</ul>
             <button class="btn btn-share" onclick="shareResult(${surrendered})">📷 Поделиться результатом</button>
             <div id="share-card"></div>`;
@@ -1283,11 +1191,12 @@
         const data = window._playerData;
         const timeStr = el('timer-display')?.textContent || '??:??';
         const hintsUsed = Object.keys(playerState.hintCells).length;
+        const totalWords = data.gridData.placedWords.length;
+        const solvedWords = Object.keys(playerState.solved).length;
         const gd = data.gridData;
         const title = data.title || 'Кроссворд';
         const today = new Date().toLocaleDateString('ru-RU', {day:'numeric', month:'long', year:'numeric'});
 
-        // Мини-сетка
         let gridHTML = `<div class="share-grid" style="grid-template-columns: repeat(${gd.cols}, 22px)">`;
         for(let r=0;r<gd.rows;r++) for(let c=0;c<gd.cols;c++) {
             const key=`${r},${c}`, letter=gd.cells[key];
@@ -1309,27 +1218,24 @@
                     <div class="share-stat-val">${timeStr}</div>
                 </div>
                 <div>
-                    <div class="share-stat-label">Слов</div>
-                    <div class="share-stat-val">${gd.placedWords.length}</div>
+                    <div class="share-stat-label">Решено</div>
+                    <div class="share-stat-val">${solvedWords} / ${totalWords}</div>
                 </div>
                 ${hintsUsed ? `<div><div class="share-stat-label">Подсказок</div><div class="share-stat-val">${hintsUsed}</div></div>` : ''}
                 ${surrendered ? `<div><div class="share-stat-label">Итог</div><div class="share-stat-val" style="color:var(--accent)">Сдался</div></div>` : ''}
             </div>
             <div class="share-grid-wrap">${gridHTML}</div>
             <div class="share-card-footer">crossword-news.app · ${today}</div>`;
-        card.classList.add('visible');
         return card;
     }
 
     async function shareResult(surrendered) {
         const btn = document.querySelector('.btn-share');
-        if(btn) { btn.disabled=true; btn.textContent='Готовлю скриншот...'; }
+        if (btn) { btn.disabled = true; btn.textContent = 'Готовлю...'; }
 
-        // Строим карточку
         const card = buildShareCard(surrendered);
-
-        // Ждём рендера
-        await new Promise(r => setTimeout(r, 120));
+        card.classList.add('visible');
+        await new Promise(r => setTimeout(r, 150));
 
         try {
             const canvas = await html2canvas(card, {
@@ -1338,17 +1244,32 @@
                 backgroundColor: '#fffef9',
                 logging: false
             });
+            card.classList.remove('visible');
 
-            const blob = await new Promise(res => canvas.toBlob(res, 'image/png'));
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url; a.download = 'crossword-result.png';
-            a.click();
-            setTimeout(()=>URL.revokeObjectURL(url), 2000);
-        } catch(err) {
-            if(err.name !== 'AbortError') alert('Не удалось создать скриншот: ' + err.message);
+            const imgDataUrl = canvas.toDataURL('image/png');
+
+            const overlay = document.createElement('div');
+            overlay.id = 'img-modal';
+            overlay.style = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.8);display:flex;align-items:center;justify-content:center;z-index:9999';
+            overlay.onclick = () => overlay.remove();
+
+            const img = document.createElement('img');
+            img.src = imgDataUrl;
+            img.style = 'max-width:90%;max-height:90%;box-shadow:0 0 20px rgba(0,0,0,0.5);border-radius:4px';
+            img.onclick = (e) => e.stopPropagation();
+
+            const hint = document.createElement('div');
+            hint.style = 'position:fixed;bottom:20px;color:white;font-family:Georgia,serif;font-size:14px;text-align:center;width:100%';
+            hint.textContent = 'Удерживайте изображение, чтобы сохранить';
+
+            overlay.appendChild(img);
+            overlay.appendChild(hint);
+            document.body.appendChild(overlay);
+
+        } catch (err) {
+            alert('Не удалось создать скриншот: ' + err.message);
         } finally {
-            if(btn) { btn.disabled=false; btn.textContent='📷 Поделиться результатом'; }
+            if (btn) { btn.disabled = false; btn.textContent = '📷 Поделиться результатом'; }
         }
     }
 
@@ -1362,14 +1283,12 @@
         renderEditor();
     }
 
-    // ---------- ИНИЦИАЛИЗАЦИЯ ----------
     function init() {
         const dataFromUrl = getDataFromUrl();
         if(dataFromUrl) { window._playerData = dataFromUrl; switchToPlayer(dataFromUrl); }
         else { renderEditor(); }
     }
 
-    // Глобальные функции для onclick
     function importFromPaste() {
         const text = el('import-paste-area')?.value || '';
         if(!text.trim()) return;
@@ -1398,6 +1317,15 @@
     window.importFromPaste = importFromPaste;
     window.toggleDirection = toggleDirection;
     window.editorState = editorState;
+
+    // Telegram WebApp link handling
+    document.addEventListener('click', function(e) {
+        const link = e.target.closest('a.clue-hint-link');
+        if (link && window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.openLink) {
+            e.preventDefault();
+            window.Telegram.WebApp.openLink(link.href);
+        }
+    });
 
     init();
 })();
