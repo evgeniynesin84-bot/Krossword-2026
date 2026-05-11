@@ -86,6 +86,7 @@
             caret-color: transparent;
             -webkit-user-select: none; user-select: none;
             autocomplete: off;
+            touch-action: manipulation;
         }
 
         .btn { font-family: 'Georgia', serif; font-size: 13px; padding: 9px 16px; border: 1.5px solid var(--ink); background: none; color: var(--ink); cursor: pointer; letter-spacing: 0.03em; transition: all 0.15s; white-space: nowrap; touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
@@ -249,9 +250,12 @@
 <body>
 
 <div class="masthead">
-    <div>
-        <div class="masthead-title" id="app-heading">Кроссворд‑новости</div>
-        <div class="masthead-sub" id="app-sub">Добавь слова — сетка соберётся сама</div>
+    <div style="display:flex;align-items:center;gap:0.875rem">
+        <img src="https://www.sostav.ru/images/news/2018/06/09/bk5qmmly_md.jpg" alt="Логотип" style="height:44px;width:auto;object-fit:contain;display:block;flex-shrink:0;">
+        <div>
+            <div class="masthead-title" id="app-heading">Кроссворд‑новости</div>
+            <div class="masthead-sub" id="app-sub">Добавь слова — сетка соберётся сама</div>
+        </div>
     </div>
     <div id="mode-badge" class="mode-pill mode-editor">Редактор</div>
 </div>
@@ -300,12 +304,24 @@
     }
 
     function getDataFromUrl() {
+        // Поддержка старых ссылок с ?data= или #hash
         const urlParams = new URLSearchParams(window.location.search);
         const dataParam = urlParams.get('data');
         if (dataParam) { try { return deserialize(dataParam); } catch(e) { console.warn(e); return null; } }
         const hash = window.location.hash.slice(1);
         if (hash) { try { return deserialize(hash); } catch(e) { console.warn(e); return null; } }
         return null;
+    }
+
+    async function loadFromId(id) {
+        try {
+            const res = await fetch(`/api/load/${id}`);
+            if (!res.ok) throw new Error('Not found');
+            return await res.json();
+        } catch(e) {
+            alert('Не удалось загрузить кроссворд. Ссылка устарела или недействительна.');
+            return null;
+        }
     }
 
     function getShareableUrl(data) {
@@ -375,7 +391,20 @@
                         }
                         if (!valid) continue;
 
-                        if (newDir === 'across') {
+                        // Проверка: параллельные клетки не должны касаться других слов (кроме точки пересечения)
+                        let tooClose = false;
+                        for (let c2=0; c2<currWord.length && !tooClose; c2++) {
+                            const cr = newDir==='across' ? newStartRow : newStartRow + c2;
+                            const cc2 = newDir==='across' ? newStartCol + c2 : newStartCol;
+                            const isIntersection = cells[`${cr},${cc2}`] !== undefined;
+                            if (!isIntersection) {
+                                const sides = newDir==='across' ? [[cr-1,cc2],[cr+1,cc2]] : [[cr,cc2-1],[cr,cc2+1]];
+                                for (const [sr,sc2] of sides) {
+                                    if (cells[`${sr},${sc2}`] && !cand[`${sr},${sc2}`]) { tooClose=true; break; }
+                                }
+                            }
+                        }
+                        if (tooClose) continue;
                             if (cells[`${newStartRow},${newStartCol-1}`] || cells[`${newStartRow},${newStartCol+currWord.length}`]) valid=false;
                         } else {
                             if (cells[`${newStartRow-1},${newStartCol}`] || cells[`${newStartRow+currWord.length},${newStartCol}`]) valid=false;
@@ -736,11 +765,26 @@
         }
     }
 
-    function generateLink() {
+    async function generateLink() {
         if(!editorState.gridData) return alert('Соберите кроссворд');
-        const url = getShareableUrl(editorState);
-        el('link-output').style.display='';
-        el('link-text').textContent = url;
+        const btn = document.querySelector('[onclick="generateLink()"]');
+        if(btn) { btn.disabled = true; btn.textContent = 'Сохраняю...'; }
+        try {
+            const res = await fetch('/api/save', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(editorState)
+            });
+            if(!res.ok) throw new Error('Server error');
+            const { id } = await res.json();
+            const url = `${location.origin}/?id=${id}`;
+            el('link-output').style.display='';
+            el('link-text').textContent = url;
+        } catch(e) {
+            alert('Не удалось сохранить кроссворд. Попробуйте ещё раз.');
+        } finally {
+            if(btn) { btn.disabled = false; btn.textContent = 'Создать ссылку'; }
+        }
     }
     function copyLink(boxEl) {
         navigator.clipboard?.writeText(boxEl.textContent).then(()=>{
@@ -782,7 +826,6 @@
                 <span class="progress-label" id="prog-label">0/${gd.placedWords.length}</span>
             </div>
             <div class="btn-row">
-                <button class="btn btn-sm" onclick="checkAll()">Проверить</button>
                 <button class="btn btn-sm btn-hint" onclick="revealHintLetter()">Подсказка +30с</button>
                 <button class="btn btn-sm" onclick="clearAll()">Сбросить</button>
                 <button class="btn btn-sm" onclick="surrender()">Сдаюсь</button>
@@ -824,11 +867,11 @@
                 inp.setAttribute('autocapitalize','characters'); inp.setAttribute('spellcheck','false');
                 inp.value = (playerState.answers[key]||'').toUpperCase();
 
-                inp.addEventListener('touchstart', e => {
+                cell.addEventListener('touchstart', e => {
                     e.preventDefault();
                     selectCell(r,c,data);
                     inp.focus();
-                    scrollToCell(r,c);
+                    setTimeout(() => scrollToCell(r,c), 50);
                 }, {passive:false});
                 inp.addEventListener('mousedown', e => {
                     e.preventDefault();
@@ -842,7 +885,10 @@
                     e.target.value = v;
                     playerState.answers[key] = v;
                     if(!playerState.startTime) startTimer();
-                    if(v) moveNext(r,c,data);
+                    if(v) {
+                        checkWordAtCell(r, c, data);
+                        moveNextSkipSolved(r, c, data);
+                    }
                 });
                 cell.appendChild(inp);
             }
@@ -1092,6 +1138,52 @@
         if(playerState.timerInterval) { clearInterval(playerState.timerInterval); playerState.timerInterval=null; }
     }
 
+    function checkWordAtCell(r, c, data) {
+        const gd = data.gridData;
+        gd.placedWords.forEach(pw => {
+            const cells = getWordCellsByPlacement(pw, gd);
+            if (!cells.some(([rr,cc]) => rr===r && cc===c)) return;
+            const entered = cells.map(([rr,cc]) => (playerState.answers[`${rr},${cc}`]||'').toUpperCase()).join('');
+            if (entered.length < pw.word.length) return;
+            const correct = entered === pw.word.toUpperCase();
+            const key2 = `${pw.number}-${pw.direction}`;
+            if (correct && !playerState.solved[key2]) {
+                playerState.solved[key2] = true;
+                cells.forEach(([rr,cc]) => {
+                    const cell = el(`cell-${rr}-${cc}`);
+                    if (cell) { cell.classList.remove('wrong-cell','highlight','active-cell','hint-cell'); cell.classList.add('correct-cell'); }
+                });
+                const cp = el(`cp-${pw.number}-${pw.direction}`); if(cp) cp.classList.add('solved-clue');
+                updateProgress();
+                checkVictory();
+            }
+        });
+    }
+
+    function moveNextSkipSolved(r, c, data) {
+        const gd = data.gridData;
+        const dr = playerState.direction==='across' ? 0 : 1;
+        const dc = playerState.direction==='across' ? 1 : 0;
+        let nr = r + dr, nc = c + dc;
+        while (nr>=0 && nr<gd.rows && nc>=0 && nc<gd.cols && gd.cells[`${nr},${nc}`]) {
+            const cellEl = el(`cell-${nr}-${nc}`);
+            if (cellEl && cellEl.classList.contains('correct-cell')) {
+                nr += dr; nc += dc;
+            } else {
+                playerState.selected = `${nr},${nc}`;
+                highlightWord(nr, nc, playerState.direction, data);
+                const inp = document.querySelector(`#cell-${nr}-${nc} input`);
+                if(inp) { inp.focus(); scrollToCell(nr, nc); }
+                showActiveClue(nr, nc, playerState.direction, data);
+                updateMobileClueBar(nr, nc, playerState.direction, data);
+                const dirInd = el('dir-indicator');
+                if(dirInd) dirInd.textContent = playerState.direction==='across'?'→ (горизонталь)':'↓ (вертикаль)';
+                return;
+            }
+        }
+        moveNext(r, c, data);
+    }
+
     function checkAll() {
         const data=window._playerData; if(!data) return;
         const gd=data.gridData;
@@ -1319,10 +1411,21 @@
         renderEditor();
     }
 
-    function init() {
-        const dataFromUrl = getDataFromUrl();
-        if(dataFromUrl) { window._playerData = dataFromUrl; switchToPlayer(dataFromUrl); }
-        else { renderEditor(); }
+    async function init() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const id = urlParams.get('id');
+        if (id) {
+            // Показываем лоадер пока грузим с API
+            const lay = el('app-layout');
+            lay.innerHTML = '<div style="padding:2rem;text-align:center;color:var(--ink2);font-size:14px">Загрузка кроссворда...</div>';
+            const data = await loadFromId(id);
+            if (data) { window._playerData = data; switchToPlayer(data); }
+            else { renderEditor(); }
+        } else {
+            const dataFromUrl = getDataFromUrl();
+            if(dataFromUrl) { window._playerData = dataFromUrl; switchToPlayer(dataFromUrl); }
+            else { renderEditor(); }
+        }
     }
 
     function importFromPaste() {
